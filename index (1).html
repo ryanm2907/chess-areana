@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>Chess Arena</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+
+<style>
+:root {
+  --bg:#101722; --surface:#192536; --surface2:#223248; --line:#34465d;
+  --gold:#e8bd68; --gold2:#f5d995; --text:#f4f6fa; --muted:#aab7c8;
+  --green:#76a85b; --danger:#e47777;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -20%,#263951 0,#101722 55%);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.nav{height:70px;padding:0 clamp(16px,5vw,70px);display:flex;align-items:center;justify-content:space-between;background:rgba(15,24,36,.88);border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.brand{font-size:21px;font-weight:900;letter-spacing:1.5px;color:var(--gold)}
+.brand span{color:#fff}
+.nav-actions{display:flex;gap:10px}
+.nav-btn{background:transparent;color:var(--muted);border:1px solid transparent;padding:9px 13px;border-radius:8px}
+.nav-btn:hover{color:#fff;border-color:var(--line)}
+.page{display:none;min-height:calc(100vh - 70px);padding:32px 18px 50px}
+.page.active{display:block}
+.hero{text-align:center;max-width:760px;margin:34px auto 28px}
+.eyebrow{color:var(--gold);font-weight:800;letter-spacing:3px;font-size:12px}
+.hero h1{font-size:clamp(42px,7vw,76px);line-height:1.02;margin:15px 0;color:#fff}
+.hero h1 span{color:var(--gold)}
+.hero p{color:var(--muted);font-size:17px;line-height:1.6}
+.home-board{font-size:clamp(48px,8vw,76px);letter-spacing:5px;margin:25px auto;color:#e9d6b2;text-shadow:0 8px 25px #0008}
+.mode-grid{max-width:850px;margin:30px auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.mode-card{background:linear-gradient(145deg,#1d2c40,#172333);border:1px solid var(--line);border-radius:18px;padding:28px;text-align:left;box-shadow:0 15px 40px #0002;transition:.2s}
+.mode-card:hover{transform:translateY(-4px);border-color:var(--gold)}
+.mode-icon{font-size:38px;margin-bottom:17px}
+.mode-card h2{margin:0 0 9px}
+.mode-card p{color:var(--muted);line-height:1.55;min-height:48px;margin:0 0 20px}
+.btn{border:0;border-radius:9px;padding:12px 17px;font-weight:800;transition:.18s}
+.btn-primary{background:var(--gold);color:#1b2430}
+.btn-primary:hover{background:var(--gold2);transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:#fff;border:1px solid var(--line)}
+.btn-secondary:hover{background:#30445d}
+.btn-quiet{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.btn-block{width:100%}
+.setup-card{width:min(100%,520px);margin:15px auto;background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:27px;box-shadow:0 20px 55px #0003}
+.setup-card h2{text-align:center;margin:0 0 23px;color:var(--gold)}
+.field{margin:15px 0}
+.field label{display:block;color:var(--muted);font-size:13px;font-weight:700;margin-bottom:8px}
+.field input,.field select{width:100%;padding:12px 13px;border-radius:8px;background:#111c2a;color:#fff;border:1px solid #40536b;outline:none}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.inline-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
+.setup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+.game-wrap{width:min(1220px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,680px) 300px;gap:22px;align-items:start}
+.board-column{min-width:0}
+.player-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin:0 0 11px;min-height:65px;transition:.2s}
+.player-bar.active{border-color:var(--gold);box-shadow:0 0 0 1px #e8bd6840;background:#253247}
+.player-details{display:flex;align-items:center;gap:11px;min-width:0}
+.avatar{width:39px;height:39px;border-radius:11px;background:#30435b;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.player-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.player-caption{font-size:12px;color:var(--muted);margin-top:4px}
+.captured{font-size:19px;letter-spacing:-3px;min-height:22px;text-align:right;color:#d9dce2;overflow-wrap:anywhere}
+.board-frame{padding:7px;background:#0b111a;border-radius:8px;box-shadow:0 18px 45px #0005}
+#board{width:100%;overflow:hidden;border-radius:3px}
+#board .white-1e1d7{background:#eee4d1}
+#board .black-3c85d{background:#9b7658}
+#board.theme-blue .white-1e1d7{background:#e2eaf1}
+#board.theme-blue .black-3c85d{background:#6484a4}
+#board.theme-green .white-1e1d7{background:#eeeed2}
+#board.theme-green .black-3c85d{background:#77965b}
+#board.theme-purple .white-1e1d7{background:#eee2f2}
+#board.theme-purple .black-3c85d{background:#9274a6}
+.side-panel{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:17px;margin-bottom:14px}
+.panel-title{font-size:13px;color:var(--gold);letter-spacing:1.4px;font-weight:900;margin:0 0 13px}
+.status{background:var(--surface2);border-radius:9px;padding:13px;text-align:center;line-height:1.45;font-weight:700;min-height:48px}
+.status.check{color:#ffb2a8}
+.status.thinking{color:var(--gold)}
+.control-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.control-grid button{padding:10px 6px;font-size:13px}
+.move-list{max-height:235px;overflow:auto;font-size:13px}
+.move-row{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px;padding:7px 8px;border-radius:5px}
+.move-row:nth-child(odd){background:#26364a}
+.move-number{color:var(--muted)}
+.move-empty{color:var(--muted);padding:8px}
+.info-line{color:var(--muted);font-size:13px;line-height:1.7}
+.game-result{display:none;margin-top:12px;text-align:center;padding:13px;background:#2b3a31;border:1px solid #587b5c;border-radius:9px;color:#c8edc7;font-weight:800}
+.game-result.show{display:block}
+.promotion-modal{display:none;position:fixed;inset:0;background:#0009;z-index:20;align-items:center;justify-content:center;padding:20px}
+.promotion-modal.show{display:flex}
+.promotion-box{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:22px;width:min(360px,100%);text-align:center}
+.promotion-box h3{margin:0 0 15px;color:var(--gold)}
+.promotion-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.promotion-options button{font-size:35px;background:var(--surface2);color:white;border-radius:9px;padding:10px}
+.promotion-options button:hover{background:#3b506b}
+.footer{text-align:center;color:#718096;font-size:12px;padding:25px}
+@media(max-width:900px){.game-wrap{grid-template-columns:minmax(0,680px)}.side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.side-panel{margin:0}.side-panel:last-child{grid-column:1/-1}}
+@media(max-width:560px){.nav{height:60px}.page{padding:20px 10px 35px}.mode-grid{grid-template-columns:1fr}.mode-card{padding:23px}.side-column{display:flex;flex-direction:column}.inline-fields{grid-template-columns:1fr}.player-name{max-width:145px}.hero{margin-top:22px}.home-board{letter-spacing:0}.setup-card{padding:20px}}
+
+/* ===== v2 additions ===== */
+html{-webkit-text-size-adjust:100%}
+body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+body.lock{overflow:hidden}
+input,select{font-size:16px}
+button{touch-action:manipulation}
+.page{min-height:calc(100vh - 70px);min-height:calc(100dvh - 70px)}
+.page.active{animation:pageIn .5s ease both}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.home-board span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+/* welcome */
+.welcome{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#2a4062 0,#101722 65%);overflow:hidden;padding:20px;text-align:center;transition:transform .9s cubic-bezier(.7,0,.3,1),opacity .9s}
+.welcome.leaving{transform:translateY(-100%);opacity:.3}
+.wl-bg span{position:absolute;bottom:-90px;color:#fff;opacity:.07;animation:rise linear infinite}
+@keyframes rise{to{transform:translateY(-125vh) rotate(360deg)}}
+.wl-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:520px}
+.wl-crown{font-size:clamp(80px,22vw,120px);line-height:1;color:var(--gold);text-shadow:0 0 40px #e8bd6899;animation:drop 1s cubic-bezier(.3,1.5,.5,1) both,glow 2.5s 1s ease-in-out infinite}
+@keyframes drop{from{transform:translateY(-110vh) rotate(-30deg)}to{transform:none}}
+@keyframes glow{50%{text-shadow:0 0 70px #e8bd68;transform:scale(1.07)}}
+.wl-eyebrow{letter-spacing:6px;color:var(--gold);font-size:12px;font-weight:800;animation:fadeUp .8s .6s both}
+.wl-title{margin:0;font-size:clamp(34px,10vw,64px);letter-spacing:3px;color:#fff;font-weight:900}
+.wl-title span{display:inline-block;animation:letter .6s cubic-bezier(.2,1.5,.5,1) both}
+@keyframes letter{from{opacity:0;transform:translateY(40px) scale(.4)}to{opacity:1;transform:none}}
+.wl-tag{color:var(--muted);margin:0;animation:fadeUp .8s 2s both}
+.wl-row{font-size:clamp(26px,8vw,40px);color:#e9d6b2;display:flex;gap:6px}
+.wl-row span{animation:pop .5s both}
+@keyframes pop{from{opacity:0;transform:scale(0) rotate(-90deg)}to{opacity:1;transform:none}}
+.wl-load{width:min(260px,70vw);height:5px;background:#ffffff1f;border-radius:9px;overflow:hidden;animation:fadeUp .5s 1.2s both}
+.wl-load i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));animation:load 1.4s 1.3s ease-out forwards}
+@keyframes load{to{width:100%}}
+.wl-btn{margin-top:6px;padding:15px 32px;border:0;border-radius:30px;background:var(--gold);color:#1b2430;font-weight:900;letter-spacing:2px;font-size:15px;opacity:.45;animation:fadeUp .8s 2s both}
+.wl-btn:not(:disabled){opacity:1;animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 #e8bd6899}100%{box-shadow:0 0 0 24px #e8bd6800}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* game */
+.pb-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:0}
+.clock{font-variant-numeric:tabular-nums;font-weight:800;color:var(--gold2);font-size:14px}
+.player-bar.check{border-color:var(--danger);animation:redPulse 1s infinite}
+@keyframes redPulse{50%{box-shadow:0 0 0 3px #e4777755}}
+.board-wrap{position:relative}
+.board-frame{will-change:transform;transition:box-shadow .3s}
+.board-frame.in-check{box-shadow:0 0 0 3px var(--danger),0 0 30px #e4777788}
+#board{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#board img{-webkit-user-drag:none}
+#board .square-55d63 img{position:relative;z-index:1}
+#board .sq-last::before,#board .sq-sel::before,#board .sq-check::before{content:"";position:absolute;inset:0;pointer-events:none}
+#board .sq-last::before{background:rgba(255,213,74,.45)}
+#board .sq-sel::before{background:rgba(90,200,110,.6)}
+#board .sq-check::before{background:radial-gradient(circle,#ff2d2d 0,#e03030cc 40%,transparent 75%);animation:kingPulse .9s infinite}
+@keyframes kingPulse{50%{opacity:.55}}
+#board .sq-hint::after{content:"";position:absolute;z-index:2;left:35%;top:35%;width:30%;height:30%;border-radius:50%;background:rgba(30,110,50,.6);pointer-events:none}
+#board .sq-cap::after{content:"";position:absolute;z-index:2;inset:4%;border-radius:50%;border:4px solid rgba(220,50,50,.8);pointer-events:none}
+.toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.5);padding:14px 26px;border-radius:14px;font-weight:900;font-size:clamp(22px,7vw,34px);letter-spacing:3px;background:#c0392bee;color:#fff;box-shadow:0 10px 40px #0008;opacity:0;pointer-events:none;z-index:6;white-space:nowrap}
+.toast.show{animation:toastPop 1.8s ease both}
+.toast.stay{animation:toastStay .6s ease both}
+@keyframes toastPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
+@keyframes toastStay{from{opacity:0;transform:translate(-50%,-50%) scale(.4)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.board-column .status{margin-top:11px}
+.info-strip{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.info-strip #moveTimer{color:var(--gold2);font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.control-grid.four{grid-template-columns:repeat(4,1fr)}
+.move-row{grid-template-columns:26px 1fr 1fr;align-items:start}
+.mv small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.mv i{font-style:normal;color:var(--danger);font-weight:800}
+@media(max-width:560px){
+  .nav{height:56px}.brand{font-size:17px}.nav-btn{padding:8px 9px;font-size:14px}
+  .page{min-height:calc(100dvh - 56px);padding:10px 8px 28px}
+  .board-frame{padding:3px}
+  .player-bar{padding:7px 10px;min-height:52px;margin-bottom:8px}
+  .avatar{width:32px;height:32px;font-size:18px}
+  .control-grid.four button{padding:12px 2px;font-size:12px;min-height:46px}
+  .mode-card p{min-height:0}
+  .info-strip{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-delay:0s!important}}
+</style>
+</head>
+<body class="lock">
+
+<div class="welcome" id="welcome">
+  <div class="wl-bg" id="wlBg"></div>
+  <div class="wl-center">
+    <div class="wl-crown">♚</div>
+    <div class="wl-eyebrow">WELCOME TO</div>
+    <h1 class="wl-title" id="wlTitle"></h1>
+    <p class="wl-tag">Think ahead. Play smart. Checkmate.</p>
+    <div class="wl-row"><span>♜</span><span>♞</span><span>♝</span><span>♛</span><span>♚</span><span>♝</span><span>♞</span><span>♜</span></div>
+    <div class="wl-load"><i></i></div>
+    <button class="wl-btn" id="wlStart" disabled>LOADING…</button>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="brand">♟ <span>CHESS</span> ARENA</div>
+  <div class="nav-actions">
+    <button class="nav-btn" onclick="goHome()">Home</button>
+    <button class="nav-btn" onclick="openSetup()">New Game</button>
+  </div>
+</header>
+
+<main>
+  <section id="homePage" class="page active">
+    <div class="hero">
+      <div class="eyebrow">YOUR NEXT MOVE STARTS HERE</div>
+      <h1>PLAY <span>CHESS.</span><br>THINK AHEAD.</h1>
+      <p>A clean chess experience with computer difficulty levels, local two-player mode, animated moves and custom boards.</p>
+      <div class="home-board" aria-hidden="true"><span style="animation-delay:0.0s">♜</span> <span style="animation-delay:0.2s">♞</span> <span style="animation-delay:0.4s">♝</span> <span style="animation-delay:0.6s">♛</span> <span style="animation-delay:0.8s">♚</span> <span style="animation-delay:1.0s">♝</span> <span style="animation-delay:1.2s">♞</span> <span style="animation-delay:1.4s">♜</span></div>
+    </div>
+    <div class="mode-grid">
+      <article class="mode-card">
+        <div class="mode-icon">🤖</div>
+        <h2>Play vs Computer</h2>
+        <p>Take on the computer. Choose your side and set the challenge level.</p>
+        <button class="btn btn-primary" onclick="openSetup('bot')">Play vs Bot →</button>
+      </article>
+      <article class="mode-card">
+        <div class="mode-icon">♟️</div>
+        <h2>Local 2 Player</h2>
+        <p>Play with a friend on the same device. The board turns for each player.</p>
+        <button class="btn btn-primary" onclick="openSetup('local')">Play 2 Player →</button>
+      </article>
+    </div>
+  </section>
+
+  <section id="setupPage" class="page">
+    <div class="setup-card">
+      <h2>SET UP YOUR MATCH</h2>
+      <div class="field">
+        <label for="mode">GAME MODE</label>
+        <select id="mode" onchange="toggleSetupFields()">
+          <option value="bot">Play vs Computer</option>
+          <option value="local">Local 2 Player</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="playerOne">YOUR NAME / PLAYER 1</label>
+        <input id="playerOne" maxlength="20" value="Player 1" placeholder="Enter player name">
+      </div>
+      <div class="field" id="playerTwoField" hidden>
+        <label for="playerTwo">PLAYER 2 NAME</label>
+        <input id="playerTwo" maxlength="20" value="Player 2" placeholder="Enter second player name">
+      </div>
+      <div class="field" id="difficultyField">
+        <label for="difficulty">COMPUTER DIFFICULTY</label>
+        <select id="difficulty">
+          <option value="1">Easy – casual opponent</option>
+          <option value="2" selected>Medium – thinks ahead</option>
+          <option value="3">Hard – deeper search</option>
+        </select>
+        <div class="hint">Hard may take a little longer to choose a move on slower computers.</div>
+      </div>
+      <div class="inline-fields">
+        <div class="field">
+          <label for="playerColor">YOUR COLOUR</label>
+          <select id="playerColor">
+            <option value="w">White</option>
+            <option value="b">Black</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="boardTheme">BOARD THEME</label>
+          <select id="boardTheme">
+            <option value="classic">Classic</option>
+            <option value="blue">Ocean Blue</option>
+            <option value="green">Forest Green</option>
+            <option value="purple">Royal Purple</option>
+          </select>
+        </div>
+      </div>
+      <div class="setup-actions">
+        <button class="btn btn-primary" onclick="startGame()">Start Match</button>
+        <button class="btn btn-secondary" onclick="goHome()">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="gamePage" class="page">
+    <div class="game-wrap">
+      <div class="board-column">
+        <div class="player-bar" id="topPlayer">
+          <div class="player-details"><div class="avatar" id="topAvatar">🤖</div><div><div class="player-name" id="topName">Computer</div><div class="player-caption" id="topCaption">Black pieces</div></div></div>
+          <div class="pb-right"><div class="clock" id="topClock">⏱ 0:00</div><div class="captured" id="topCaptured"></div></div>
+        </div>
+        <div class="board-wrap">
+          <div class="board-frame" id="boardFrame"><div id="board"></div></div>
+          <div class="toast" id="toast"></div>
+        </div>
+        <div class="player-bar" id="bottomPlayer" style="margin-top:11px">
+          <div class="player-details"><div class="avatar" id="bottomAvatar">👤</div><div><div class="player-name" id="bottomName">Player 1</div><div class="player-caption" id="bottomCaption">White pieces</div></div></div>
+          <div class="pb-right"><div class="clock" id="bottomClock">⏱ 0:00</div><div class="captured" id="bottomCaptured"></div></div>
+        </div>
+        <div class="status" id="status">White to move</div>
+        <div class="info-strip"><div id="lastMove">Tap a piece to see its moves</div><div id="moveTimer">⏱ —</div></div>
+        <div class="control-grid four">
+          <button class="btn btn-secondary" onclick="undoMove()">↶ Undo</button>
+          <button class="btn btn-secondary" onclick="flipBoardManually()">⇅ Flip</button>
+          <button class="btn btn-secondary" onclick="restartGame()">⟳ Restart</button>
+          <button class="btn btn-secondary" onclick="openSetup()">⚙ Setup</button>
+        </div>
+        <div class="game-result" id="gameResult"></div>
+      </div>
+      <aside class="side-column">
+        <div class="side-panel">
+          <h3 class="panel-title">MOVE HISTORY</h3>
+          <div class="move-list" id="history"><div class="move-empty">No moves yet</div></div>
+        </div>
+        <div class="side-panel">
+          <h3 class="panel-title">MATCH DETAILS</h3>
+          <div class="info-line" id="gameInfo">Local chess match</div>
+          <div class="info-line" id="turnInfo" style="margin-top:7px">White to move</div>
+          <p class="hint">Tap a piece (or drag it): green dots show where it can go, red rings show captures. In 2-player mode the board flips for each turn.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div class="promotion-modal" id="promotionModal">
+  <div class="promotion-box">
+    <h3>Choose your promotion</h3>
+    <div class="promotion-options">
+      <button onclick="choosePromotion('q')" aria-label="Queen">♕</button>
+      <button onclick="choosePromotion('r')" aria-label="Rook">♖</button>
+      <button onclick="choosePromotion('b')" aria-label="Bishop">♗</button>
+      <button onclick="choosePromotion('n')" aria-label="Knight">♘</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">CHESS ARENA · Built for thoughtful moves.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+<script>
+"use strict";
+/* ---- speed settings (milliseconds) – change these to taste ---- */
+const MOVE_MS = 700;   // piece sliding speed
+const SNAP_MS = 250;   // drag-drop snap speed
+const FLIP_MS = 1400;  // full board flip duration
+
+const chess = new Chess();
+let board=null, mode="bot", humanColor="w", botColor="b", difficulty=2;
+let names={w:"Player 1",b:"Computer"};
+let botThinking=false, gameFinished=false, capturedPieces=[], pendingPromotion=null, botTimer=null;
+let busy=false, gameId=0, selected=null, moveTimes=[], turnStart=null, resultText="";
+
+const values={p:100,n:320,b:335,r:500,q:900,k:20000};
+const symbols={p:"♟",n:"♞",b:"♝",r:"♜",q:"♛"};
+const PIECE={p:"Pawn",n:"Knight",b:"Bishop",r:"Rook",q:"Queen",k:"King"};
+const V="\uFE0E";
+const ICON={w:{p:"♙"+V,n:"♘"+V,b:"♗"+V,r:"♖"+V,q:"♕"+V,k:"♔"+V},b:{p:"♟"+V,n:"♞"+V,b:"♝"+V,r:"♜"+V,q:"♛"+V,k:"♚"+V}};
+const $id=id=>document.getElementById(id);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fmt=ms=>{const s=ms/1000;return s<60?s.toFixed(1)+"s":Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");};
+const fmtClock=ms=>{const t=Math.floor(ms/1000);return Math.floor(t/60)+":"+String(t%60).padStart(2,"0");};
+const viewColor=()=>board&&board.orientation()==="black"?"b":"w";
+
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  $id(id).classList.add("active");
+  if(id==="gamePage"&&board) setTimeout(()=>{board.resize();applyHighlights();},60);
+}
+function goHome(){clearTimeout(botTimer);gameId++;busy=false;botThinking=false;showPage("homePage");}
+function openSetup(m){
+  clearTimeout(botTimer);gameId++;busy=false;botThinking=false;
+  if(m) $id("mode").value=m;
+  toggleSetupFields();showPage("setupPage");
+}
+function toggleSetupFields(){
+  const isBot=$id("mode").value==="bot";
+  $id("difficultyField").hidden=!isBot;
+  $id("playerTwoField").hidden=isBot;
+  $id("playerColor").disabled=!isBot;
+}
+
+function resetState(){
+  clearTimeout(botTimer);gameId++;
+  chess.reset();capturedPieces=[];botThinking=false;gameFinished=false;busy=false;
+  pendingPromotion=null;selected=null;moveTimes=[];turnStart=Date.now();resultText="";
+  closePromotion();
+  $id("gameResult").classList.remove("show");$id("gameResult").textContent="";
+  $id("toast").className="toast";
+}
+const startOrientation=()=>mode==="bot"&&humanColor==="b"?"black":"white";
+
+function startGame(){
+  mode=$id("mode").value;
+  humanColor=$id("playerColor").value;
+  botColor=humanColor==="w"?"b":"w";
+  difficulty=Number($id("difficulty").value);
+  const n1=$id("playerOne").value.trim()||"Player 1";
+  const n2=$id("playerTwo").value.trim()||"Player 2";
+  if(mode==="bot"){names.w=humanColor==="w"?n1:"Computer";names.b=humanColor==="b"?n1:"Computer";}
+  else{names.w=n1;names.b=n2;}
+  resetState();
+
+  $id("board").className="theme-"+$id("boardTheme").value;
+  if(board) board.destroy();
+  board=Chessboard("board",{
+    position:"start",orientation:startOrientation(),draggable:true,
+    pieceTheme:"https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+    moveSpeed:MOVE_MS,snapSpeed:SNAP_MS,snapbackSpeed:SNAP_MS,
+    onDragStart:function(source,piece){
+      if(!canPlay()) return false;
+      if(piece[0]!==chess.turn()) return false;
+      select(source);return true;
+    },
+    onDrop:function(source,target){
+      if(target==="offboard"||source===target) return "snapback";
+      const legal=legalFrom(source).filter(m=>m.to===target);
+      if(!legal.length) return "snapback";
+      if(legal[0].promotion){pendingPromotion={from:source,to:target};select(null);openPromotion();return "snapback";}
+      const mv=chess.move({from:source,to:target});
+      recordCapture(mv);afterMove(mv);
+    },
+    onSnapEnd:function(){if(board) board.position(chess.fen());}
+  });
+  $("#board").off("click.sq").on("click.sq",".square-55d63",onSquareClick);
+
+  $id("gameInfo").textContent=mode==="bot"?"Player vs Computer · "+["","Easy","Medium","Hard"][difficulty]:"Local two-player match";
+  showPage("gamePage");
+  updateInterface();applyHighlights();
+  if(mode==="bot"&&chess.turn()===botColor) startBot(500);
+}
+
+/* ---------- selection, hints, moving ---------- */
+function canPlay(){return board&&!gameFinished&&!busy&&!botThinking&&!pendingPromotion&&!(mode==="bot"&&chess.turn()!==humanColor);}
+function legalFrom(sq){return chess.moves({square:sq,verbose:true});}
+function select(sq){selected=sq;applyHighlights();}
+function onSquareClick(){
+  if(!canPlay()) return;
+  const sq=this.getAttribute("data-square");
+  if(selected&&selected!==sq&&legalFrom(selected).some(m=>m.to===sq)){attemptMove(selected,sq);return;}
+  const p=chess.get(sq);
+  select(p&&p.color===chess.turn()?sq:null);
+}
+function attemptMove(from,to){
+  const legal=legalFrom(from).filter(m=>m.to===to);
+  if(!legal.length) return;
+  if(legal[0].promotion){pendingPromotion={from,to};select(null);openPromotion();return;}
+  const mv=chess.move({from,to});
+  recordCapture(mv);
+  board.position(chess.fen(),true);
+  afterMove(mv);
+}
+function kingSquare(color){
+  const b=chess.board();
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=b[r][c];if(p&&p.type==="k"&&p.color===color) return "abcdefgh"[c]+(8-r);}
+  return null;
+}
+function applyHighlights(){
+  if(!board) return;
+  document.querySelectorAll("#board .square-55d63").forEach(e=>e.classList.remove("sq-last","sq-sel","sq-hint","sq-cap","sq-check"));
+  const mark=(sq,c)=>{const e=document.querySelector('#board [data-square="'+sq+'"]');if(e)e.classList.add(c);};
+  const h=chess.history({verbose:true}),m=h[h.length-1];
+  if(m){mark(m.from,"sq-last");mark(m.to,"sq-last");}
+  if(selected){
+    mark(selected,"sq-sel");
+    legalFrom(selected).forEach(x=>mark(x.to,x.flags.includes("c")||x.flags.includes("e")?"sq-cap":"sq-hint"));
+  }
+  if(chess.in_check()){const k=kingSquare(chess.turn());if(k) mark(k,"sq-check");}
+}
+
+function openPromotion(){$id("promotionModal").classList.add("show");}
+function closePromotion(){$id("promotionModal").classList.remove("show");}
+function choosePromotion(piece){
+  if(!pendingPromotion) return;
+  const mv=chess.move({from:pendingPromotion.from,to:pendingPromotion.to,promotion:piece});
+  pendingPromotion=null;closePromotion();
+  if(!mv){board.position(chess.fen());return;}
+  recordCapture(mv);
+  board.position(chess.fen(),true);
+  afterMove(mv);
+}
+function recordCapture(m){if(m&&m.captured) capturedPieces.push({color:m.color==="w"?"b":"w",piece:m.captured});}
+
+function showToast(text,stay){
+  const t=$id("toast");t.textContent=text;t.className="toast";void t.offsetWidth;
+  t.className="toast "+(stay?"stay":"show");
+}
+
+async function afterMove(move){
+  const id=gameId;
+  moveTimes.push(turnStart?Date.now()-turnStart:0);turnStart=null;
+  selected=null;busy=true;
+  applyHighlights();updateInterface();
+  if(chess.in_checkmate()) showToast("♚ CHECKMATE!",true);
+  else if(chess.in_check()) showToast("♚ CHECK!");
+  await wait(MOVE_MS+100);
+  if(id!==gameId) return;
+  if(chess.game_over()){busy=false;finishGame();return;}
+  if(mode==="local") await setOrientation(chess.turn());
+  if(id!==gameId) return;
+  busy=false;turnStart=Date.now();updateInterface();
+  if(mode==="bot"&&chess.turn()===botColor) startBot(300);
+}
+
+async function setOrientation(c){
+  const want=c==="w"?"white":"black";
+  if(!board||board.orientation()===want) return;
+  const frame=$id("boardFrame");
+  const swap=()=>{board.orientation(want);applyHighlights();updateInterface();};
+  if(reduce||!frame.animate){swap();return;}
+  const h=FLIP_MS/2,f=a=>"perspective(1100px) rotateX("+a+"deg)";
+  const a1=frame.animate([{transform:f(0)},{transform:f(90)}],{duration:h,easing:"ease-in",fill:"forwards"});
+  await a1.finished;
+  swap();
+  const a2=frame.animate([{transform:f(-90)},{transform:f(0)}],{duration:h,easing:"ease-out"});
+  a1.cancel();
+  await a2.finished;
+}
+
+function startBot(delay){
+  botThinking=true;turnStart=Date.now();updateInterface();
+  botTimer=setTimeout(makeBotMove,delay);
+}
+
+function evaluatePosition(perspective) {
+  const b = chess.board();
+  let score = 0;
+  for (let r=0;r<8;r++) {
+    for (let c=0;c<8;c++) {
+      const p = b[r][c];
+      if (!p) continue;
+      let value = values[p.type];
+      const center = 7 - (Math.abs(3.5-r) + Math.abs(3.5-c));
+      if (p.type === "n" || p.type === "b") value += center * 5;
+      if (p.type === "p") {
+        const advance = p.color === "w" ? 6-r : r-1;
+        value += advance * 7;
+      }
+      score += p.color === perspective ? value : -value;
+    }
+  }
+  return score;
+}
+
+function minimax(depth, alpha, beta, perspective) {
+  if (chess.game_over()) {
+    if (chess.in_checkmate()) return chess.turn() === perspective ? -100000-depth : 100000+depth;
+    return 0;
+  }
+  if (depth <= 0) return evaluatePosition(perspective);
+
+  const moves = chess.moves({verbose:true});
+  const maximizing = chess.turn() === perspective;
+  let best = maximizing ? -Infinity : Infinity;
+
+  for (const m of moves) {
+    chess.move({from:m.from,to:m.to,promotion:m.promotion || "q"});
+    const score = minimax(depth-1,alpha,beta,perspective);
+    chess.undo();
+
+    if (maximizing) {
+      best = Math.max(best,score);
+      alpha = Math.max(alpha,best);
+    } else {
+      best = Math.min(best,score);
+      beta = Math.min(beta,best);
+    }
+    if (beta <= alpha) break;
+  }
+  return best;
+}
+
+function chooseBotMove() {
+  const moves = chess.moves({verbose:true});
+  if (!moves.length) return null;
+
+  // Depth is deliberately capped for browser responsiveness.
+  const depth = difficulty === 1 ? 1 : difficulty === 2 ? 2 : 3;
+  let bestScore = -Infinity;
+  let choices = [];
+
+  // Prefer captures/checks first to improve alpha-beta pruning.
+  moves.sort((a,b) => {
+    const av = (a.captured ? values[a.captured] : 0) + (a.flags.includes("c") ? 15 : 0);
+    const bv = (b.captured ? values[b.captured] : 0) + (b.flags.includes("c") ? 15 : 0);
+    return bv-av;
+  });
+
+  for (const m of moves) {
+    chess.move({from:m.from,to:m.to,promotion:m.promotion || "q"});
+    const score = minimax(depth-1,-Infinity,Infinity,botColor);
+    chess.undo();
+
+    if (score > bestScore) {
+      bestScore = score;
+      choices = [m];
+    } else if (score === bestScore) {
+      choices.push(m);
+    }
+  }
+  return choices[Math.floor(Math.random()*choices.length)];
+}
+
+function makeBotMove(){
+  if(gameFinished||mode!=="bot"||chess.turn()!==botColor){botThinking=false;updateInterface();return;}
+  const move=chooseBotMove();
+  if(!move){botThinking=false;finishGame();return;}
+  const played=chess.move({from:move.from,to:move.to,promotion:move.promotion||"q"});
+  recordCapture(played);
+  botThinking=false;
+  board.position(chess.fen(),true);
+  afterMove(played);
+}
+
+function describe(m){
+  let t=ICON[m.color][m.piece]+" "+(m.color==="w"?"White ":"Black ")+PIECE[m.piece]+": "+m.from+" → "+m.to;
+  if(m.captured) t+=" · captured "+PIECE[m.captured];
+  if(m.flags.includes("k")) t+=" · castled kingside";
+  if(m.flags.includes("q")) t+=" · castled queenside";
+  if(m.promotion) t+=" · promoted to "+PIECE[m.promotion];
+  return t;
+}
+
+function updateInterface(){
+  const bottom=viewColor(),top=bottom==="w"?"b":"w",turn=chess.turn();
+  const inCheck=chess.in_check()&&!gameFinished||chess.in_checkmate();
+  const avatarFor=c=>mode==="bot"&&c===botColor?"🤖":"👤";
+  $id("topName").textContent=names[top];$id("bottomName").textContent=names[bottom];
+  $id("topAvatar").textContent=avatarFor(top);$id("bottomAvatar").textContent=avatarFor(bottom);
+  $id("topCaption").textContent=top==="w"?"White pieces":"Black pieces";
+  $id("bottomCaption").textContent=bottom==="w"?"White pieces":"Black pieces";
+  const live=!gameFinished&&!chess.game_over();
+  [["topPlayer",top],["bottomPlayer",bottom]].forEach(([id,c])=>{
+    $id(id).classList.toggle("active",live&&turn===c);
+    $id(id).classList.toggle("check",inCheck&&turn===c);
+  });
+  $id("boardFrame").classList.toggle("in-check",inCheck);
+  $id("topCaptured").textContent=capturedPieces.filter(x=>x.color===top).map(x=>symbols[x.piece]).join(" ");
+  $id("bottomCaptured").textContent=capturedPieces.filter(x=>x.color===bottom).map(x=>symbols[x.piece]).join(" ");
+
+  const st=$id("status");st.classList.remove("check","thinking");
+  if(resultText||gameFinished||chess.game_over()){st.textContent=resultText||"Game finished";if(chess.in_checkmate())st.classList.add("check");}
+  else if(botThinking){st.textContent="Computer is thinking…";st.classList.add("thinking");}
+  else{st.textContent=names[turn]+" to move"+(chess.in_check()?" · ⚠ CHECK!":"");if(chess.in_check())st.classList.add("check");}
+
+  const h=chess.history({verbose:true});
+  $id("lastMove").textContent=h.length?describe(h[h.length-1]):"Tap a piece to see its moves";
+  $id("turnInfo").textContent="Turn: "+(turn==="w"?"White":"Black")+(chess.in_check()?" · King is in check":"");
+  updateHistory(h);tickClocks();
+}
+
+function updateHistory(h){
+  h=h||chess.history({verbose:true});
+  const box=$id("history");
+  if(!h.length){box.innerHTML='<div class="move-empty">No moves yet</div>';return;}
+  const cell=i=>{
+    const m=h[i];if(!m) return "<span></span>";
+    const txt=m.flags.includes("k")?"O-O":m.flags.includes("q")?"O-O-O":m.from+(m.captured?" <i>×</i> ":" → ")+m.to+(m.promotion?"="+m.promotion.toUpperCase():"");
+    return '<span class="mv">'+ICON[m.color][m.piece]+" "+txt+"<small>⏱ "+fmt(moveTimes[i]||0)+"</small></span>";
+  };
+  let html="";
+  for(let i=0;i<h.length;i+=2) html+='<div class="move-row"><span class="move-number">'+(i/2+1)+".</span>"+cell(i)+cell(i+1)+"</div>";
+  box.innerHTML=html;box.scrollTop=box.scrollHeight;
+}
+
+function tickClocks(){
+  if(!board) return;
+  const t={w:0,b:0};moveTimes.forEach((ms,i)=>t[i%2?"b":"w"]+=ms);
+  const live=turnStart&&!gameFinished?Date.now()-turnStart:0;
+  t[chess.turn()]+=live;
+  const b=viewColor(),tp=b==="w"?"b":"w";
+  $id("bottomClock").textContent="⏱ "+fmtClock(t[b]);
+  $id("topClock").textContent="⏱ "+fmtClock(t[tp]);
+  $id("moveTimer").textContent="⏱ "+(live?fmt(live):"—");
+}
+setInterval(tickClocks,200);
+
+function finishGame(){
+  gameFinished=true;botThinking=false;busy=false;turnStart=null;clearTimeout(botTimer);
+  let r="Draw";
+  if(chess.in_checkmate()) r=names[chess.turn()==="w"?"b":"w"]+" wins by checkmate!";
+  else if(chess.in_stalemate()) r="Draw by stalemate";
+  else if(chess.in_threefold_repetition()) r="Draw by threefold repetition";
+  else if(chess.insufficient_material()) r="Draw by insufficient material";
+  resultText=r;
+  const bn=$id("gameResult");bn.textContent=r;bn.classList.add("show");
+  if(!chess.in_checkmate()) showToast("DRAW",true);
+  updateInterface();applyHighlights();
+}
+
+async function undoMove(){
+  if(!board||busy||botThinking||pendingPromotion||!chess.history().length) return;
+  const id=++gameId;
+  const pop=()=>{chess.undo();moveTimes.pop();};
+  pop();
+  if(mode==="bot"&&chess.turn()!==humanColor&&chess.history().length) pop();
+  capturedPieces=chess.history({verbose:true}).filter(m=>m.captured).map(m=>({color:m.color==="w"?"b":"w",piece:m.captured}));
+  gameFinished=false;resultText="";selected=null;
+  $id("gameResult").classList.remove("show");$id("toast").className="toast";
+  board.position(chess.fen(),true);
+  busy=true;updateInterface();applyHighlights();
+  if(mode==="local") await setOrientation(chess.turn());
+  if(id!==gameId) return;
+  busy=false;turnStart=Date.now();updateInterface();applyHighlights();
+  if(mode==="bot"&&chess.turn()===botColor) startBot(400);
+}
+
+function restartGame(){
+  if(!board) return;
+  resetState();
+  board.position("start",false);
+  board.orientation(startOrientation());
+  updateInterface();applyHighlights();
+  if(mode==="bot"&&botColor==="w") startBot(500);
+}
+
+function flipBoardManually(){
+  if(!board||busy) return;
+  setOrientation(viewColor()==="w"?"b":"w");
+}
+
+window.addEventListener("resize",()=>{if(board){board.resize();applyHighlights();}});
+window.addEventListener("orientationchange",()=>setTimeout(()=>{if(board){board.resize();applyHighlights();}},300));
+toggleSetupFields();
+
+/* ---------- welcome screen ---------- */
+(function(){
+  const t=$id("wlTitle");
+  "CHESS ARENA".split("").forEach((ch,i)=>{const s=document.createElement("span");s.textContent=ch===" "?"\u00a0":ch;s.style.animationDelay=(0.9+i*0.07)+"s";t.appendChild(s);});
+  const bg=$id("wlBg");
+  "♜♞♝♛♚♟♝♞♜♛♚♟".split("").forEach((p,i)=>{
+    const s=document.createElement("span");s.textContent=p;
+    s.style.left=((i*8.5+Math.random()*4)%94)+"%";
+    s.style.fontSize=(28+Math.random()*44)+"px";
+    s.style.animationDuration=(9+Math.random()*8)+"s";
+    s.style.animationDelay=(-Math.random()*12)+"s";
+    bg.appendChild(s);
+  });
+  document.querySelectorAll(".wl-row span").forEach((s,i)=>s.style.animationDelay=(1.5+i*0.1)+"s");
+  const btn=$id("wlStart");
+  setTimeout(()=>{btn.disabled=false;btn.textContent="TAP TO PLAY ▶";},2700);
+  btn.onclick=()=>{
+    const w=$id("welcome");w.classList.add("leaving");document.body.classList.remove("lock");
+    setTimeout(()=>w.remove(),950);
+  };
+})();
+</script>
+</body>
+</html>
